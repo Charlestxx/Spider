@@ -1,0 +1,62 @@
+import requests
+from lxml import etree
+import os
+from time import sleep
+headers = {
+    'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Safari/537.36',
+    'Referer': 'https://movie.douban.com/top250?start=75&filter='
+}
+
+def single_page(url):
+    response = requests.get(url,headers=headers)
+    html_str = response.text
+    html = etree.HTML(html_str)
+    page_contents = html.xpath("/html/body/div[3]/div[1]/div/div[1]/ol/li")
+    for li in page_contents:
+        title = li.xpath("./div/div[2]/div[1]/a/span[1]/text()")
+        link_url = li.xpath("./div/div[2]/div[1]/a/@href")
+        download(link_url[0])
+
+def download(url):
+    #用于获取电影榜单中的海报图片和剧情介绍，并以jpg和txt的形式存下来
+    res = requests.get(url,headers=headers)
+    html = etree.HTML(res.text)
+    photo = html.xpath("//*[@id='mainpic']/a/img/@src")
+    text_1 = html.xpath("//*[@id='link-report']/span[2]/text()")
+    text_2 = html.xpath('//*[@id="link-report"]/span[1]/text()')
+    if text_1:
+        text = '\n'.join(text_1)
+    else:
+        text = '\n'.join(text_2)
+    title = html.xpath("//*[@id='content']/h1/span[1]/text()")
+    title = biaodian(title[0])
+    if not os.path.exists(title):
+        os.makedirs(title)
+    try:
+        filename_text = '剧情简介'
+        file_path_text = title +'/'+ filename_text + '.txt'
+        with open(file_path_text,'w',encoding='utf8') as file:
+                file.write(text)
+                file.flush()
+                file.close()
+    
+        filename_photo = '海报'
+        file_path_photo = title +'/' + filename_photo+'.jpg'
+        resp = requests.get(photo[0],headers=headers)
+        with open(file_path_photo,'wb') as file:
+                file.write(resp.content)
+    except:
+        print(title[0],"抓取出现异常")
+ 
+def biaodian(a):
+    # 因为电影中某些符号的存在不能以电影名建立文件
+    a=a.replace("/", " ").replace("|", " ")
+    a=a.replace(":", " ").replace(">", " ")
+    a=a.replace("?", " ").replace("*", " ")
+    a=a.replace("<", " ")
+    return a
+ 
+if_name_ = ="_main_"：
+    for i in range(10):
+        url = 'https://movie.douban.com/top250?start=' + str(i*25) +'&filter='
+        single_page(url)
